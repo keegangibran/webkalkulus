@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Analisis Kepadatan Lalu Lintas</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+  <style>
+
+    .grid-2x2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 24px;
+      width: 100%;
+    }
+
+    .grid-item { width: 100%; }
+
+    :root{
+      --bg:#f0f4f8; 
+      --card:#ffffff;
+      --accent:#007bff; 
+      --accent-dark:#0056b3; 
+      --muted:#6c757d; 
+      --green:#28a745; 
+      --blue:#17a2b8; 
+      --red:#dc3545; 
+      --shadow-color-light: rgba(140, 152, 164, 0.15); 
+      --shadow-color-dark: rgba(140, 152, 164, 0.4); 
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: 'Inter', sans-serif; 
+      background: var(--bg);
+      color:#343a40; 
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    h1,h2{color:#212529;font-weight:700;}
+    h1{font-size:1.8rem}
+    h2{font-size:1.6rem;margin-top:0;margin-bottom:0.5rem}
+
+    .topbar{
+      display:flex;justify-content:space-between;align-items:center;padding:20px 40px;
+      border-bottom:1px solid #e9ecef;
+      background: var(--card);
+      box-shadow: 0 4px 20px var(--shadow-color-light); 
+    }
+
+    .brand{display:flex;gap:15px;align-items:center}
+
+    .logo{
+      width:45px;height:45px;border-radius:12px;
+      background:linear-gradient(135deg,var(--accent),#00c7e0); 
+      color:white;display:flex;align-items:center;justify-content:center;font-weight:800;
+      font-size:1.3rem;
+      box-shadow:0 6px 15px rgba(0, 123, 255, 0.4)
+    }
+
+    nav .tab{
+      margin-left:12px;padding:10px 20px;border-radius:20px; 
+      border:1px solid transparent;
+      background:transparent;color:var(--accent);cursor:pointer;
+      transition:.3s;font-weight:600;
+    }
+    nav .tab:hover{
+      background:rgba(0,123,255,.1);
+      color:var(--accent-dark);
+    }
+    nav .tab.active{
+      background:linear-gradient(90deg,var(--accent),#00c7e0);
+      color:white;border-color:var(--accent);
+      box-shadow:0 8px 20px rgba(0,123,255,.4);
+      transform:translateY(-2px)
+    }
+
+    .container{max-width:1300px;margin:40px auto;padding:0 30px} 
+    .panel{margin-bottom:40px}
+
+    .card{
+      background:var(--card);
+      border-radius:20px;padding:35px;margin-top:25px;
+      border:1px solid #e9ecef;
+      box-shadow:0 15px 35px var(--shadow-color-light);
+      transition:.4s cubic-bezier(.25,.8,.25,1);
+      width: 100%;
+    }
+
+    .card:hover{box-shadow:0 20px 45px var(--shadow-color-dark)}
+
+    .two-col{display:flex;gap:40px;width:100%;}
+    .two-col>div{flex:1;}
+
+    @media(max-width:992px){
+      .two-col{flex-direction:column;gap:20px}
+      .topbar{padding:15px 20px}
+      .container{padding:0 15px;margin:20px auto}
+    }
+
+    label{display:block;font-weight:600;margin-bottom:8px;color:#495057}
+    input,select{
+      width:100%;padding:14px 20px;border-radius:18px;
+      border:1px solid #ced4da;background:#f8f9fa;
+      transition:.3s;font-size:1rem;margin-bottom:20px;
+    }
+
+    input:focus,select:focus{
+      border-color:var(--accent);outline:none;
+      box-shadow:0 0 0 5px rgba(0,123,255,.2);background:var(--card)
+    }
+
+    button{
+      padding:14px 28px;border-radius:16px;border:0;
+      background:var(--accent);color:white;cursor:pointer;
+      font-weight:600;transition:.3s;box-shadow:0 6px 15px rgba(0,123,255,.3)
+    }
+
+    button:hover{background:var(--accent-dark);transform:translateY(-3px)}
+    button.primary{background:linear-gradient(90deg,var(--accent),#00c7e0)}
+
+    #inputs-table-wrap .row-input{
+      display:flex;gap:20px;align-items:center;padding:18px 0;
+      border-bottom:1px solid #f8f9fa;background:var(--card)
+    }
+
+    #inputs-table-wrap .row-input:nth-child(even){background:#f8f9fa}
+    #inputs-table-wrap input[type=number]{width:120px;text-align:center;margin-bottom:0}
+
+    .summary-box{
+      background:linear-gradient(135deg,#e3f2fd,#f1f8e9);
+      border-left:6px solid var(--accent);
+      border-radius:12px;padding:25px;color:#1e40af;
+      font-weight:500;box-shadow:inset 0 0 10px rgba(0,0,0,.05)
+    }
+
+    .interval-detail-list{
+      max-height:250px;overflow-y:auto;border:1px solid #e9ecef;
+      border-radius:12px;margin-top:10px
+    }
+
+    .interval-row{
+      padding:10px 15px;display:flex;justify-content:space-between;
+      border-bottom:1px dashed #e9ecef;font-size:.95rem
+    }
+
+    .interval-row:nth-child(even){background:#f8f9fa}
+
+    .status-badge{
+      font-weight:700;padding:3px 10px;border-radius:8px;font-size:.85rem;color:white
+    }
+
+    .status-sepi{background:var(--green)}
+    .status-normal{background:var(--blue)}
+    .status-ramai{background:var(--red)}
+
+    #lineChart{
+      background:#f8f9fa;padding:15px;border-radius:15px;
+      box-shadow:inset 0 0 8px rgba(0,0,0,.05)
+    }
+
+    .hidden{display:none}
+
+    .footer{text-align:center;color:var(--muted);padding:30px;margin-top:50px}
+  </style>
+</head>
+
+<body>
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">🚗</div>
+      <div>
+        <h1>Analisis Kepadatan Lalu Lintas</h1>
+        <div class="subtitle">Mode Peneliti — Mode Pengguna</div>
+      </div>
+    </div>
+
+    <nav>
+      <button id="tab-research" class="tab">Mode Peneliti</button>
+      <button id="tab-user" class="tab active">Mode Pengguna</button>
+    </nav>
+  </header>
+
+  <main class="container">
+
+    <div id="login-box" class="card" style="max-width:400px; margin:20px auto; display:none;">
+      <h3>Login Peneliti</h3>
+      <input id="login-pass" type="password" placeholder="Masukkan Password" />
+      <button id="login-btn">Masuk</button>
+    </div>
+
+    <!-- ========================= -->
+    <!-- MODE PENELITI -->
+    <!-- ========================= -->
+    <section id="research" class="panel hidden">
+
+      <h2>Mode Peneliti — Input Dataset</h2>
+
+      <div class="card two-col">
+        <div>
+          <label>Nama Lokasi</label>
+          <input id="research-name" placeholder="Contoh: Simpang Lonsum"/>
+
+          <label>Waktu mulai</label>
+          <input id="start-time" type="time" value="07:00"/>
+
+          <label>Interval (menit)</label>
+          <input id="interval-minutes" type="number" min="1" value="15"/>
+
+          <label>Jumlah interval</label>
+          <input id="interval-count" type="number" min="1" value="10"/>
+
+          <div class="row">
+            <button id="make-rows">Buat Baris Interval</button>
+            <button id="fill-sample">Isi Contoh Cepat</button>
+          </div>
+
+          <div class="row" style="margin-top:20px">
+            <button id="save-dataset" class="primary">Simpan Dataset</button>
+            <button id="clear-storage">Hapus Semua Dataset</button>
+          </div>
+        </div>
+
+        <div>
+          <label>Preview Perhitungan</label>
+          <div id="preview-summary" class="summary-box">Belum ada data.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Input Data Kepadatan</h3>
+        <div id="inputs-table-wrap"></div>
+      </div>
+    </section>
+
+    <!-- ========================= -->
+    <!-- MODE PENGGUNA -->
+    <!-- ========================= -->
+    <section id="user" class="panel">
+
+      <h2>Mode Pengguna — Melihat Analisis</h2>
+
+      <!-- BAGIAN ATAS -->
+      <div class="card two-col">
+
+        <div>
+          <label>Pilih Dataset</label>
+          <select id="user-select">
+            <option value="">-- Tidak ada data --</option>
+          </select>
+
+          <div class="row">
+            <button id="user-load" class="primary">Muat Data</button>
+            <button id="user-delete">Hapus Dataset Ini</button>
+          </div>
+
+          <label style="margin-top:20px">Nama Lokasi</label>
+          <input id="user-location-name" readonly style="background:#e9ecef"/>
+        </div>
+
+        <div>
+          <label>Konsep Matematis Analisis Kepadatan</label>
+          <div class="summary-box">
+            <p><b>Rumus digunakan:</b></p>
+            <p>Forward difference: f'(0) = f(1) − f(0)</p>
+            <p>Central difference: f'(t) = [f(t+1) − f(t−1)] / 2</p>
+            <p>Backward difference: f'(n) = f(n) − f(n−1)</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- GRID 2×2 -->
+      <div class="card">
+        <div class="grid-2x2">
+
+          <div class="grid-item">
+            <label>Titik Kritis</label>
+            <div id="user-summary" class="summary-box">Tidak ada data dimuat.</div>
+          </div>
+
+          <div class="grid-item">
+            <label>Grafik Kepadatan</label>
+            <canvas id="lineChart"></canvas>
+          </div>
+
+          <div class="grid-item">
+            <label>Detail Interval</label>
+            <div id="interval-detail-wrap" class="summary-box">Pilih dataset.</div>
+          </div>
+
+          <div class="grid-item">
+            <label>Konsep Analisis</label>
+            <div class="summary-box">
+              <ul>
+                <li>Sepi: 1–350</li>
+                <li>Normal: 351–750</li>
+                <li>Ramai: &gt;750</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer class="footer">Mini riset — Aplikasi edukasi</footer>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  
+  // ==========================
+  //  ELEMENT HTML
+  // ==========================
+  const tabResearch = document.getElementById("tab-research");
+  const tabUser = document.getElementById("tab-user");
+  const panelResearch = document.getElementById("research");
+  const panelUser = document.getElementById("user");
+
+  const loginBox = document.getElementById("login-box");
+  const loginBtn = document.getElementById("login-btn");
+  const loginPass = document.getElementById("login-pass");
+
+  // ==========================
+  //  KUNCI MODE PENELITI
+  // ==========================
+  
+  // SEMBUNYIKAN PANEL PENELITI
+  panelResearch.classList.add("hidden");
+
+  // Saat tombol "Mode Peneliti" di klik → tampilkan login
+  tabResearch.addEventListener("click", () => {
+    loginBox.style.display = "block";
+    panelResearch.classList.add("hidden");
+    tabResearch.classList.add("active");
+    tabUser.classList.remove("active");
+    panelUser.classList.add("hidden");
+  });
+
+  // LOGIN
+  loginBtn.addEventListener("click", () => {
+    const pass = loginPass.value.trim();
+
+    if (pass === "admin123") {
+      loginBox.style.display = "none";
+      panelResearch.classList.remove("hidden");
+      panelUser.classList.add("hidden");
+
+      alert("Login berhasil!");
+    } else {
+      alert("Password salah!");
+    }
+  });
+
+  // ==========================
+  //  DATABASE SEMENTARA
+  // ==========================
+  let allDatasets = [];
+  let lineChart = null;
+
+  // ==========================
+  //  ELEMENT HTML
+  // ==========================
+
+  const elName = document.getElementById("research-name");
+  const elStart = document.getElementById("start-time");
+  const elIntervalMin = document.getElementById("interval-minutes");
+  const elIntervalCount = document.getElementById("interval-count");
+  const wrapInputs = document.getElementById("inputs-table-wrap");
+  const previewSummary = document.getElementById("preview-summary");
+
+  const btnMake = document.getElementById("make-rows");
+  const btnFill = document.getElementById("fill-sample");
+  const btnSave = document.getElementById("save-dataset");
+  const btnClear = document.getElementById("clear-storage");
+
+  const userSelect = document.getElementById("user-select");
+  const btnUserLoad = document.getElementById("user-load");
+  const btnUserDelete = document.getElementById("user-delete");
+  const userLocationName = document.getElementById("user-location-name");
+  const userSummary = document.getElementById("user-summary");
+  const intervalDetailWrap = document.getElementById("interval-detail-wrap");
+
+  const canvas = document.getElementById("lineChart");
+
+
+  // ==========================
+  //  TAB NAVIGATION
+  // ==========================
+  function showResearch() {
+    panelResearch.classList.remove("hidden");
+    panelUser.classList.add("hidden");
+    tabResearch.classList.add("active");
+    tabUser.classList.remove("active");
+  }
+
+  function showUser() {
+    panelUser.classList.remove("hidden");
+    panelResearch.classList.add("hidden");
+    tabUser.classList.add("active");
+    tabResearch.classList.remove("active");
+  }
+
+  tabUser.addEventListener("click", showUser);
+
+
+  // ==========================
+  //  HITUNG JAM INTERVAL
+  // ==========================
+  function addMinutesToTime(timeStr, mins) {
+    const [h, m] = timeStr.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h);
+    d.setMinutes(m + mins);
+    return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  }
+
+
+  // ==========================
+  //  BUILD INPUT ROWS
+  // ==========================
+  function buildInputRows() {
+    wrapInputs.innerHTML = "";
+
+    const start = elStart.value;
+    const mins = parseInt(elIntervalMin.value);
+    const count = parseInt(elIntervalCount.value);
+
+    for (let i = 0; i < count; i++) {
+      const row = document.createElement("div");
+      row.className = "row-input";
+
+      const t0 = addMinutesToTime(start, i * mins);
+      const t1 = addMinutesToTime(start, (i + 1) * mins);
+
+      row.innerHTML = `
+        <div style="width:180px">${t0} → ${t1}</div>
+        <input type="number" min="0" value="0" data-index="${i}" />
+      `;
+
+      wrapInputs.appendChild(row);
+    }
+
+    updatePreview();
+  }
+
+  btnMake.addEventListener("click", buildInputRows);
+
+
+  // ==========================
+  //  PREVIEW PERHITUNGAN
+  // ==========================
+  function updatePreview() {
+
+    let inputs = wrapInputs.querySelectorAll("input");
+    if (!inputs.length) {
+      previewSummary.innerHTML = "Belum ada data.";
+      return;
+    }
+
+    let values = [...inputs].map(i => Number(i.value));
+    let n = values.length;
+    let deriv = Array(n).fill(0);
+
+    if (n > 1) {
+      deriv[0] = values[1] - values[0];
+      for (let i = 1; i < n - 1; i++) {
+        deriv[i] = (values[i + 1] - values[i - 1]) / 2;
+      }
+      deriv[n - 1] = values[n - 1] - values[n - 2];
+    }
+
+    previewSummary.innerHTML = `
+      <b>Preview Sementara:</b><br>
+      Nilai tertinggi: ${Math.max(...values)}<br>
+      Nilai terendah: ${Math.min(...values)}<br>
+      Laju naik terbesar: ${Math.max(...deriv).toFixed(2)}<br>
+      Laju turun terbesar: ${Math.min(...deriv).toFixed(2)}
+    `;
+  }
+
+  wrapInputs.addEventListener("input", updatePreview);
+  elIntervalMin.addEventListener("input", () => { buildInputRows(); });
+  elIntervalCount.addEventListener("input", () => { buildInputRows(); });
+
+
+  // ==========================
+  //  SAMPLE DATA
+  // ==========================
+  btnFill.addEventListener("click", () => {
+    buildInputRows();
+    const sample = [120,240,390,500,380,260,120,50,300,420];
+    const inputs = wrapInputs.querySelectorAll("input");
+
+    inputs.forEach((inp, i) => inp.value = sample[i] || 0);
+
+    updatePreview();
+  });
+
+
+  // ==========================
+  //  HITUNG TURUNAN
+  // ==========================
+  function computeResults(values) {
+
+    const n = values.length;
+    const deriv = Array(n).fill(0);
+
+    if (n > 1) {
+      deriv[0] = values[1] - values[0];
+      for (let t = 1; t < n - 1; t++) {
+        deriv[t] = (values[t + 1] - values[t - 1]) / 2;
+      }
+      deriv[n - 1] = values[n - 1] - values[n - 2];
+    }
+
+    const status = values.map(v => {
+      if (v >= 1 && v <= 350) return "Sepi";
+      if (v > 351 && v <= 750) return "Normal";
+      if (v > 750) return "Ramai";
+      return "Kosong";
+    });
+
+    return { deriv, status };
+  }
+
+
+  // ==========================
+  //  SIMPAN DATASET
+  // ==========================
+  btnSave.addEventListener("click", () => {
+
+    const name = elName.value.trim();
+    if (!name) return alert("Nama lokasi harus diisi!");
+
+    const start = elStart.value;
+    const mins = parseInt(elIntervalMin.value);
+
+    const inputs = wrapInputs.querySelectorAll("input");
+    const values = [...inputs].map(i => Number(i.value));
+
+    const { deriv, status } = computeResults(values);
+
+    const times = values.map((_, i) => {
+      const t0 = addMinutesToTime(start, i * mins);
+      const t1 = addMinutesToTime(start, (i + 1) * mins);
+      return `${t0}–${t1}`;
+    });
+
+    const dataset = {
+      id: Date.now(),
+      name, values, deriv, status, times,
+      count: values.length
+    };
+
+    fetch("/api/data", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(dataset)
+})
+.then(res => res.json())
+.then(() => {
+  alert("Dataset berhasil disimpan!");
+  loadDatasetsFromServer();
+  showUser();
+});
+
+function loadDatasetsFromServer() {
+  fetch("/api/data")
+    .then(res => res.json())
+    .then(data => {
+      allDatasets = data;
+      refreshUserSelect();
+    });
+}
+
+
+  });
+
+
+  // ==========================
+  //  HAPUS SEMUA DATASET
+  // ==========================
+  btnClear.addEventListener("click", () => {
+    if (!confirm("Hapus semua dataset?")) return;
+
+    allDatasets = [];
+    refreshUserSelect();
+    clearChart();
+
+    alert("Semua dataset dihapus.");
+  });
+
+
+  // ==========================
+  //  USER: REFRESH SELECT
+  // ==========================
+  function refreshUserSelect() {
+    userSelect.innerHTML = "<option value=''>-- Pilih dataset --</option>";
+
+    allDatasets.forEach(ds => {
+      const opt = document.createElement("option");
+      opt.value = ds.id;
+      opt.textContent = `${ds.name} (${ds.count} interval)`;
+      userSelect.appendChild(opt);
+    });
+  }
+
+
+  // ==========================
+  //  LOAD DATASET USER
+  // ==========================
+  btnUserLoad.addEventListener("click", () => {
+
+    const id = Number(userSelect.value);
+    if (!id) return alert("Pilih dataset dahulu.");
+
+    const ds = allDatasets.find(d => d.id === id);
+    if (!ds) return alert("Dataset tidak ditemukan!");
+
+    renderUserDataset(ds);
+  });
+
+
+  // ==========================
+  //  DELETE SELECTED DATASET
+  // ==========================
+  btnUserDelete.addEventListener("click", () => {
+
+    const id = Number(userSelect.value);
+    if (!id) return alert("Pilih dataset dahulu.");
+
+    // ...
+// ...
+    if (!confirm("Hapus dataset ini?")) return;
+
+    // Lakukan FETCH DELETE ke server (menggunakan jalur relatif)
+    fetch(`/api/data/${id}`, {
+      method: "DELETE"
+    })
+    .then(res => {
+        if (res.ok) { // Pastikan server merespon 200/OK
+            // Hapus data lokal setelah sukses dari server
+            allDatasets = allDatasets.filter(d => d.id !== id);
+            refreshUserSelect();
+            clearChart();
+
+            userLocationName.value = "";
+            intervalDetailWrap.innerHTML = "Dataset dihapus.";
+            userSummary.innerHTML = "Tidak ada data dimuat.";
+
+            alert("Dataset berhasil dihapus dari server.");
+        } else {
+            alert("Gagal menghapus data di server.");
+        }
+    })
+    .catch(err => alert("Error koneksi: Gagal menghapus dataset."));
+    
+    // Hapus baris-baris ini, biarkan logic ada di dalam .then()
+    // allDatasets = allDatasets.filter(d => d.id !== id);
+    // refreshUserSelect();
+    // clearChart();
+    
+    // ... (Hapus sisa kode yang sudah dipindahkan ke dalam .then())
+});
+
+
+  // ==========================
+  //  RENDER DATASET
+  // ==========================
+  function renderUserDataset(ds) {
+
+    userLocationName.value = ds.name;
+
+    const maxVal = Math.max(...ds.values);
+    const iMax = ds.values.indexOf(maxVal);
+
+    const minVal = Math.min(...ds.values);
+    const iMin = ds.values.indexOf(minVal);
+
+    const maxDer = Math.max(...ds.deriv);
+    const iMaxDer = ds.deriv.indexOf(maxDer);
+
+    const minDer = Math.min(...ds.deriv);
+    const iMinDer = ds.deriv.indexOf(minDer);
+
+    // SUMMARY TITIK KRITIS
+    userSummary.innerHTML = `
+      <div><b>Puncak Kepadatan:</b> ${ds.times[iMax]} (${maxVal})</div>
+      <div><b>Lembah Kepadatan:</b> ${ds.times[iMin]} (${minVal})</div>
+      <hr>
+      <div><b>Laju Naik Tercepat:</b> ${ds.times[iMaxDer]} (+${maxDer.toFixed(2)})</div>
+      <div><b>Laju Turun Tercepat:</b> ${ds.times[iMinDer]} (${minDer.toFixed(2)})</div>
+    `;
+
+    // INTERVAL DETAIL
+    let html = `<div class="interval-detail-list">`;
+
+    ds.times.forEach((t, i) => {
+      const st = ds.status[i].toLowerCase();
+      html += `
+        <div class="interval-row">
+          <span>${t}</span>
+          <span>${ds.values[i]} kendaraan</span>
+          <span class="status-badge status-${st}">${ds.status[i]}</span>
+        </div>
+      `;
+    });
+
+    html += `</div>`;
+    intervalDetailWrap.innerHTML = html;
+
+    drawChart(ds, iMax, iMin);
+  }
+
+
+  // ==========================
+  //  CLEAR CHART
+  // ==========================
+  function clearChart() {
+    if (lineChart) {
+      lineChart.destroy();
+      lineChart = null;
+    }
+
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+
+  // ==========================
+  //  GRAFIK
+  // ==========================
+  function drawChart(ds, iMax, iMin) {
+
+    if (lineChart) lineChart.destroy();
+
+    const ctx = canvas.getContext("2d");
+
+    const pointColors = ds.status.map(s => {
+      if (s === "Sepi") return "#28a745";
+      if (s === "Normal") return "#17a2b8";
+      if (s === "Ramai") return "#dc3545";
+      return "#999";
+    });
+
+    const radii = new Array(ds.values.length).fill(6);
+    radii[iMax] = 10;
+    radii[iMin] = 10;
+
+    lineChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: ds.times,
+        datasets: [{
+          data: ds.values,
+          borderColor: "#007bff",
+          borderWidth: 2,
+          tension: 0.3,
+          pointRadius: radii,
+          pointBackgroundColor: pointColors,
+          pointBorderColor: "#333"
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+
+  // ==========================
+  //  INITIAL
+  // ==========================
+  loadDatasetsFromServer();
+  buildInputRows();
+  refreshUserSelect();
+  showUser();
+
+});
+
+</script>
+
+</body>
+</html>
